@@ -42,13 +42,15 @@ kiwoom auth login        # 토큰 발급
 
 ### 키체인이 없는 환경 (컨테이너·CI)
 
+OS 키체인을 읽을 수 없는 곳에서는 호스트에서 발급한 토큰을 주입합니다.
+
 ```bash
-export KIWOOM_APPKEY_FILE=/run/secrets/kiwoom_appkey
-export KIWOOM_SECRETKEY_FILE=/run/secrets/kiwoom_secretkey
-export KIWOOM_TOKEN_STORAGE=env
+kiwoom auth login                          # 키체인 있는 호스트에서 발급
+export KIWOOM_TOKEN='...'                   # 발급된 토큰
+export KIWOOM_DOMAIN=mock                   # prod = 실계좌
 ```
 
-이러면 서버가 토큰을 스스로 발급하고 만료되면 재발급합니다. (kiwoom-cli 2.15.0+)
+`KIWOOM_TOKEN`은 키체인 토큰보다 우선하며, 만료되면 다시 발급해 넣어야 합니다.
 
 ## 할 수 있는 것
 
@@ -88,13 +90,22 @@ export KIWOOM_TOKEN_STORAGE=env
 
 ## 구성
 
-| 저장소 | 역할 |
-|---|---|
-| [kiwoom-cli](https://github.com/gejyn14/kiwoom-cli) | 키움 API 236종 CLI. 안전장치가 여기 있습니다 |
-| [kiwoom-mcp](https://github.com/gejyn14/kiwoom-mcp) | MCP 서버. 단독으로도 씁니다 |
-| **kiwoom-plugin** | Claude Code 플러그인 + 스킬 |
+이 저장소가 MCP 관련 전부를 담습니다 — 플러그인, 스킬, 그리고 MCP 서버 본체.
 
-MCP 서버만 필요하면 이 플러그인 없이 `kiwoom-mcp`를 직접 쓸 수 있습니다.
+```
+kiwoom-plugin/
+├── plugins/kiwoom/           조회 전용 플러그인 + 스킬
+├── plugins/kiwoom-trader/    조회 + 주문 플러그인 + 스킬
+└── server/                   MCP 서버 (uvx로 직접 실행)
+```
+
+플러그인은 `server/`를 `uvx`로 git에서 직접 실행하므로 별도 배포(PyPI/npm)가 없습니다. 안전장치(주문 확인, dry-run, 멱등키, envelope)는 [kiwoom-cli](https://github.com/gejyn14/kiwoom-cli)의 것을 그대로 씁니다 — 서버는 kiwoom-cli를 감쌀 뿐 다시 구현하지 않습니다.
+
+MCP 서버만 필요하면 플러그인 없이 직접 실행할 수 있습니다:
+
+```bash
+uvx --from "git+https://github.com/gejyn14/kiwoom-plugin@v0.1.0#subdirectory=server" kiwoom-mcp
+```
 
 ## 면책
 

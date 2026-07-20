@@ -16,7 +16,7 @@
       "version": "0.1.0",
       "author": { "name": "Yu Jin" },
       "homepage": "https://github.com/gejyn14/kiwoom-plugin",
-      "repository": "https://github.com/gejyn14/kiwoom-mcp",
+      "repository": "https://github.com/gejyn14/kiwoom-plugin",
       "license": "Apache-2.0",
       "category": "finance",
       "keywords": ["kiwoom", "stock", "korea", "trading", "market-data", "read-only"]
@@ -28,7 +28,7 @@
       "version": "0.1.0",
       "author": { "name": "Yu Jin" },
       "homepage": "https://github.com/gejyn14/kiwoom-plugin",
-      "repository": "https://github.com/gejyn14/kiwoom-mcp",
+      "repository": "https://github.com/gejyn14/kiwoom-plugin",
       "license": "Apache-2.0",
       "category": "finance",
       "keywords": ["kiwoom", "stock", "korea", "trading", "order-execution"]
