@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "kiwoom": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/gejyn14/kiwoom-mcp@v0.1.0",
+        "kiwoom-mcp",
+        "--allow-orders"
+      ],
+      "env": {}
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "kiwoom-trader",
+  "description": "kiwoom 조회 기능 전체 + 주문 실행. 실제 계좌에서 돈이 움직입니다",
+  "version": "0.1.0",
+  "author": {
+    "name": "Yu Jin",
+    "url": "https://github.com/gejyn14"
+  },
+  "homepage": "https://github.com/gejyn14/kiwoom-plugin",
+  "repository": "https://github.com/gejyn14/kiwoom-mcp",
+  "license": "Apache-2.0",
+  "keywords": ["kiwoom", "stock", "korea", "trading", "order-execution"]
+}
