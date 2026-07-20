@@ -1,0 +1,39 @@
+name: Publish server to PyPI
+
+# server/ 의 kiwoom-mcp 패키지를 PyPI에 게시합니다. 플러그인 자체는 PyPI가
+# 아니라 Claude Code 마켓플레이스(git)로 배포되므로 여기 대상이 아닙니다.
+#
+# 태그(v*)를 밀거나 Actions에서 수동 실행(workflow_dispatch)하면 동작합니다.
+# 먼저 PyPI에 Trusted Publisher를 등록해야 합니다 (README/설정 안내 참고):
+#   project: kiwoom-mcp · owner: gejyn14 · repo: kiwoom-plugin
+#   workflow: publish.yml · environment: pypi
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write   # PyPI Trusted Publishing (OIDC) — 장기 토큰 없음
+      contents: read
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - run: python -m build
+      # server/ 하위에서 빌드되므로 dist 경로를 명시합니다.
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: server/dist/
