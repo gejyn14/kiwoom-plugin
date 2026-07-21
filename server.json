@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.gejyn14/kiwoom-mcp",
+  "description": "Kiwoom Securities REST API (236 endpoints) for AI agents — Korean market data, accounts, charts, real-time streaming, and gated order execution",
+  "repository": {
+    "url": "https://github.com/gejyn14/kiwoom-plugin",
+    "source": "github"
+  },
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "kiwoom-mcp",
+      "version": "0.1.1",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

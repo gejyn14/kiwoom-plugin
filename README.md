@@ -60,6 +60,8 @@ export KIWOOM_DOMAIN=mock                   # prod = 실계좌
 오늘 거래량 상위 종목 보여줘
 005930 최근 한 달 추세랑 외국인 수급 같이 봐줘
 미체결 주문 있어?
+내 조건식 돌려서 걸린 종목 알려줘
+이번 달 실현손익 정리해줘
 ```
 
 `kiwoom-trader`를 설치했다면:
@@ -76,7 +78,9 @@ export KIWOOM_DOMAIN=mock                   # prod = 실계좌
 |---|---|
 | `stock-research` | 종목 조사 — 시세, 차트, 수급을 하나로 |
 | `portfolio-review` | 계좌·보유종목·평가손익·미체결 점검 |
+| `pnl-report` | 실현손익·수익률을 기간별로 정리 |
 | `market-scan` | 순위, 업종, 테마, 실시간 시세 |
+| `condition-search` | HTS에 저장한 조건식으로 종목 걸러내기 |
 | `kiwoom-setup` | 인증·설정 진단 (연결이 안 될 때) |
 | `place-order` | 주문 절차 — `kiwoom-trader` 전용 |
 
@@ -99,12 +103,13 @@ kiwoom-plugin/
 └── server/                   MCP 서버 (uvx로 직접 실행)
 ```
 
-플러그인은 `server/`를 `uvx`로 git에서 직접 실행하므로 별도 배포(PyPI/npm)가 없습니다. 안전장치(주문 확인, dry-run, 멱등키, envelope)는 [kiwoom-cli](https://github.com/gejyn14/kiwoom-cli)의 것을 그대로 씁니다 — 서버는 kiwoom-cli를 감쌀 뿐 다시 구현하지 않습니다.
+서버는 PyPI에 [`kiwoom-mcp`](https://pypi.org/project/kiwoom-mcp/)로 게시되며, 플러그인이 `uvx`로 실행합니다. 안전장치(주문 확인, dry-run, 멱등키, envelope)는 [kiwoom-cli](https://github.com/gejyn14/kiwoom-cli)의 것을 그대로 씁니다 — 서버는 kiwoom-cli를 감쌀 뿐 다시 구현하지 않습니다.
 
-MCP 서버만 필요하면 플러그인 없이 직접 실행할 수 있습니다:
+MCP 서버만 필요하면 플러그인 없이 직접 실행할 수 있습니다 (Claude Desktop, 다른 MCP 클라이언트 등):
 
 ```bash
-uvx --from "git+https://github.com/gejyn14/kiwoom-plugin@v0.1.0#subdirectory=server" kiwoom-mcp
+uvx kiwoom-mcp                  # 조회 전용
+uvx kiwoom-mcp --allow-orders   # 조회 + 주문
 ```
 
 ## 면책

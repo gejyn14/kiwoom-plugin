@@ -1,7 +1,7 @@
 {
   "name": "kiwoom",
   "description": "키움증권 REST API 236종 — 시세, 계좌, 차트, 순위, 실시간 스트리밍 (조회 전용)",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "Yu Jin",
     "url": "https://github.com/gejyn14"

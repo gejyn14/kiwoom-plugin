@@ -11,13 +11,15 @@ kiwoom-plugin/
 │   ├── kiwoom/                        조회 전용 플러그인
 │   │   ├── .claude-plugin/plugin.json
 │   │   ├── .mcp.json                  서버를 uvx로 실행 (주문 없음)
-│   │   └── skills/                    stock-research, portfolio-review, market-scan, kiwoom-setup
+│   │   └── skills/                    stock-research, portfolio-review, pnl-report,
+│   │                                  market-scan, condition-search, kiwoom-setup
 │   └── kiwoom-trader/                 조회 + 주문 플러그인
 │       ├── .mcp.json                  서버를 --allow-orders로 실행
-│       └── skills/                    위 4개 + place-order
+│       └── skills/                    위 6개 + place-order
+├── server.json                       공식 MCP 레지스트리 매니페스트
 └── server/                           MCP 서버 본체 (파이썬 패키지 kiwoom-mcp)
     ├── kiwoom_mcp/{cli,server,runner,policy}.py
-    ├── tests/                         96개
+    ├── tests/                         211개
     ├── pyproject.toml
     ├── Dockerfile / compose.yaml      헤드리스 컨테이너 (토큰 주입)
     └── README.md
@@ -34,7 +36,7 @@ kiwoom-plugin/
 ```bash
 cd server
 pip install -e ".[dev]"
-pytest tests/ -q          # 96개
+pytest tests/ -q          # 211개
 ruff check kiwoom_mcp/ tests/
 ```
 
@@ -56,6 +58,8 @@ uvx --from "git+https://github.com/gejyn14/kiwoom-plugin@v0.1.0#subdirectory=ser
 
 - **서버는 kiwoom-cli를 `CliRunner.invoke(cli, argv)`로 같은 프로세스에서 실행한다.** 파사드를 만들지 않는다 — 확인 게이트·멱등성 원장·페이지네이션·exit code·envelope이 전부 활성 Click 컨텍스트에 매달려 있고, 별도 해석 경로를 만들면 kiwoom-cli에서 세 번 재발한 프로필 해석 버그를 되풀이한다. (`server/kiwoom_mcp/runner.py`)
 - **argv 분류는 Click 파서로 한다, 문자열 훑기가 아니라.** (`policy.py`) 손으로 토큰을 훑으면 `--opt=value`나 끼어든 인자에서 분류와 실제 실행이 갈려, "조회"로 분류된 argv가 주문을 보낸다. Click 8.4가 하위 명령을 `protected_args`로 옮기는 것을 놓쳐 실제로 이 버그가 났다 (`test_policy.py`가 고정).
+- **스킬의 argv는 문서가 아니라 실행 대상이다.** `SKILL.md`의 모든 `kiwoom_run([...])`은 `test_skills.py`가 Click 트리로 걸어 **리프에 도달하는지** 검사한다. kiwoom-cli의 그룹을 리프처럼 부르면 런타임에 `INVALID_INPUT`이 나는데, 이건 문서를 읽어서는 보이지 않고 사용자가 겪어야만 드러난다 — 실제로 출하된 스킬 6개에 이런 argv가 12곳 있었다(`place-order`의 주문 확인 경로 포함). 스킬은 두 플러그인에 복사본으로 존재하므로 같은 테스트가 바이트 동일성도 고정한다. **한쪽만 고치지 말 것.**
+- **`order condition`(조건검색)은 주문이 아니다.** kiwoom-cli가 `order` 아래 두었을 뿐 ka10171~ka10174는 조회·구독이다. `policy.py`의 `MUTATION_EXCEPTIONS`에서 빼면 조회 전용 플러그인에서 조건검색이 통째로 막힌다.
 - **`kiwoom_order`는 `--allow-orders`일 때만 등록된다.** 설정으로 끄는 게 아니라 도구 목록에 아예 없어야 한다. 안전 여부는 대화 중이 아니라 설치 시점(어느 플러그인을 깔지)에 정한다.
 - **기동 경로는 절대 키체인을 읽지 않는다.** macOS 키체인 승인은 바이너리 단위라, 헤드리스 서버가 기동 중 키체인을 읽으면 답할 수 없는 GUI 창이 떠 무한정 멈춘다 — 타임아웃처럼 보이지만 아니다. 토큰은 첫 호출에서 필요할 때 확보한다. `credentials_available()`은 env만 본다.
 
