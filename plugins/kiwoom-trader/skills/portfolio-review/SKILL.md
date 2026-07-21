@@ -10,21 +10,28 @@ description: 계좌 잔고, 보유종목, 평가손익, 미체결 주문, 거래
 1. **잔고와 보유종목** — `kiwoom_run(["account","balance","--market","kr"])`
    미국주식은 `--market us`, 둘 다는 생략한다.
 
-2. **평가손익** — `kiwoom_run(["account","pnl"])`
+2. **실현손익** — `kiwoom_run(["account","pnl","daily","--from","<YYYYMMDD>","--to","<YYYYMMDD>"])`
+   `account pnl`은 그룹이다. `--from`/`--to`가 **필수**이므로 기간을 정해서 넣는다
+   (기간을 안 물었으면 최근 한 달 정도를 쓰고, 어떤 기간인지 답에 밝힌다).
+   종목별로 보려면 `account pnl by-period --from … --to …`,
+   당일 한 종목은 `account pnl today <코드>`.
 
-3. **미체결** — `kiwoom_run(["account","orders"])`
+3. **미체결** — `kiwoom_run(["account","orders","pending"])`
    체결되지 않은 주문이 남아 있으면 사용자가 잊고 있을 수 있으니 먼저 알린다.
+   체결된 것은 `account orders executed`.
 
-4. 필요하면 예수금(`account deposit`), 거래내역(`account history`)을 더한다.
+4. 필요하면 예수금(`account deposit`), 거래내역(`account history transactions`),
+   당일 매매일지(`account history journal`)를 더한다.
 
 한 화면 요약이 필요하면 `kiwoom_run(["dashboard"])` 하나로 계좌 요약과
 거래량 상위를 함께 받을 수 있다.
 
 ## 답할 때
 
-- **평가손익은 계산된 값이다.** 유가잔고평가액에서 총매입금액을 뺀 것으로,
-  키움 API의 `lspft`(실현손익)와 다르다. 사용자가 증권사 앱과 다르다고 하면
-  이 차이를 설명한다.
+- **평가손익과 실현손익을 섞지 않는다.** 1번의 평가손익은 유가잔고평가액에서
+  총매입금액을 뺀 **계산된** 값(아직 팔지 않은 것)이고, 2번의 실현손익은 실제로
+  팔아서 확정된 것이다. 사용자가 증권사 앱과 숫자가 다르다고 하면 대개 이 차이다 —
+  어느 쪽을 말하는 것인지 밝히고 답한다.
 - **집중도를 짚는다.** 한 종목이 포트폴리오의 큰 부분을 차지하면 언급할 가치가
   있다. 다만 사실을 말하는 것이지 조언이 아니다.
 - **`meta.partial_failures`를 확인한다.** 국내/미국 중 한쪽만 실패하면 이 키가

@@ -1,26 +1,37 @@
 ---
 name: market-scan
-description: 시장 전반을 훑는다. 거래량·등락률·시가총액 순위, 업종, 테마, ETF, 프로그램매매, 실시간 시세. "오늘 시장 어때", "거래량 상위", "많이 오른 종목", "무슨 테마가 강해?", "코스닥 상황" 같은 요청에 사용한다.
+description: 시장 전반을 훑는다. 거래량·등락률·거래대금 순위, 업종, 테마, ETF, 프로그램매매, 실시간 시세. "오늘 시장 어때", "거래량 상위", "많이 오른 종목", "무슨 테마가 강해?", "코스닥 상황" 같은 요청에 사용한다.
 ---
 
 # 시장 훑기
 
 ## 순위 (28종)
 
-`kiwoom_run(["market","rank","<종류>","--market","kospi|kosdaq|all"])`
+종류는 **하위 명령**이다 (`--market`은 `all`/`kospi`/`kosdaq`):
 
-자주 쓰는 것: `volume`(거래량), `change`(등락률), `amount`(거래대금),
-`market-cap`(시가총액), `foreigner`(외국인 순매수).
+```
+kiwoom_run(["market","rank","volume","--market","kospi"])
+```
+
+자주 쓰는 것: `volume`(당일 거래량), `change`(전일대비 등락률), `amount`(거래대금),
+`volume-surge`(거래량 급증), `foreign-inst`(외국인/기관 매매 상위),
+`new-highlow`(신고저가), `limit`(상하한가).
 
 전체 목록은 `kiwoom_describe(["market","rank"])`로 확인한다 — 28종이라 외우지 말고
-필요할 때 조회한다.
+필요할 때 조회한다. **시가총액 순위는 없다** — 없는 종류를 지어내지 말고 목록에서 고른다.
 
 ## 그 밖
 
-- 업종: `kiwoom_run(["market","sector"])`
-- 테마: `kiwoom_run(["market","theme"])` — "무슨 테마가 강한지" 물을 때
-- ETF: `kiwoom_run(["market","etf"])`
-- 프로그램매매: `kiwoom_run(["market","program"])`
+`market sector`·`theme`·`etf`·`program`은 전부 **그룹**이다. 그대로 호출하면
+`INVALID_INPUT`이 나므로 하위 명령까지 내려간다.
+
+- 업종 지수: `kiwoom_run(["market","sector","index"])` — 기본 `--sector-code 001`(KOSPI종합),
+  KOSDAQ종합은 `101`. 업종별 등락은 `market sector investor`, 개별 업종은 `market sector current <업종코드>`.
+- 테마: `kiwoom_run(["market","theme","groups"])` — "무슨 테마가 강한지" 물을 때.
+  구성종목은 `market theme stocks <테마코드>`.
+- ETF: `kiwoom_run(["market","etf","all"])` — 개별 ETF는 `market etf info <코드>`.
+- 프로그램매매: `kiwoom_run(["market","program","time-trend","--date","<YYYYMMDD>"])`
+  — `--date`가 **필수**다. 일자별은 `market program daily-trend`.
 
 ## 실시간
 

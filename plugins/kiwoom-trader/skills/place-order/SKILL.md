@@ -67,13 +67,13 @@ kiwoom_order(action="cancel", symbol="005930", order_no="<원주문번호>", qty
 kiwoom_order(action="modify", symbol="005930", order_no="<원주문번호>", qty=10, price=71000, ...)
 ```
 
-원주문번호는 `kiwoom_run(["account","orders"])`의 미체결 목록에서 찾는다.
+원주문번호는 `kiwoom_run(["account","orders","pending"])`의 미체결 목록에서 찾는다.
 취소·정정도 1~3단계를 똑같이 거친다.
 
 ## 응답을 못 받았을 때
 
 `ORDER_STATUS_UNKNOWN`이 오면 **주문이 나갔는지 알 수 없다는 뜻이다.**
-같은 내용으로 다시 보내지 않는다. `kiwoom_run(["account","orders"])`로
+같은 내용으로 다시 보내지 않는다. `kiwoom_run(["account","orders","pending"])`로
 체결·미체결 상태를 먼저 확인하고, 그 결과를 사용자에게 보고한다.
 
 `TOKEN_EXPIRED`로 실패하면 서버가 토큰을 갱신했을 수 있다 —

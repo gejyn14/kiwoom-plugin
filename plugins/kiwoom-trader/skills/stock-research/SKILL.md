@@ -20,16 +20,23 @@ description: 국내·미국 종목을 조사한다. 시세, 차트, 투자자별
    `--fields`로 필요한 것만 받으면 토큰이 절약된다:
    `kiwoom_run(["stock","info","005930"], fields="symbol,price,change_rate,volume")`
 
-2. **추세** — `kiwoom_run(["stock","chart","<코드>","--period","day"])`
-   기간은 `day`/`week`/`month`. 단기 흐름을 물으면 `--period day`,
-   장기면 `month`를 쓴다.
+2. **추세** — `kiwoom_run(["stock","chart","day","<코드>","--base-date","<YYYYMMDD>"])`
+   기간은 **하위 명령**이다: `tick`/`minute`/`day`/`week`/`month`/`year`.
+   단기 흐름을 물으면 `day`, 장기면 `month`를 쓴다.
+   `--base-date`는 **필수**이며 조회 기준일이다 — 최근 흐름을 볼 때는 오늘 날짜를 넣는다.
 
-3. **수급** — `kiwoom_run(["stock","investor","<코드>"])`
+3. **수급** — `kiwoom_run(["stock","investor","by-stock","<코드>","--date","<YYYYMMDD>"])`
    외국인·기관 순매수는 국내 시장에서 특히 의미가 크다.
+   `--date`도 **필수**다. 기관/외국인 연속매매는 `stock investor consecutive`.
 
-4. 필요하면 대차잔고(`stock lending`), 종목 비교(`stock compare`)를 더한다.
+4. 필요하면 대차거래추이(`stock lending by-stock`), 종목 비교(`stock compare`)를 더한다.
 
 무엇을 쓸 수 있는지 모르면 `kiwoom_describe(["stock"])`로 확인한다.
+
+**끝까지 내려간 경로만 실행된다.** `stock chart`, `stock investor`, `stock lending`은
+그룹이라 그대로 호출하면 `INVALID_INPUT`이 난다 — 반드시 하위 명령을 붙인다.
+필수 옵션을 빠뜨렸을 때도 같은 오류가 나므로, 모르면 먼저
+`kiwoom_describe(["stock","chart","day"], paths_only=False)`로 스키마를 본다.
 
 ## 답할 때
 
