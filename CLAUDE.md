@@ -44,15 +44,16 @@ ruff check kiwoom_mcp/ tests/
 
 ## 플러그인 배선 (중요)
 
-두 플러그인의 `.mcp.json`은 서버를 이렇게 실행한다:
+두 플러그인의 `.mcp.json`은 서버를 PyPI에서 실행한다:
 
 ```
-uvx --from "git+https://github.com/gejyn14/kiwoom-plugin@v0.1.0#subdirectory=server" kiwoom-mcp [--allow-orders]
+uvx --from "kiwoom-mcp==0.1.1" kiwoom-mcp [--allow-orders]
 ```
 
-- **git **태그**에 고정한다** (`@v0.1.0`), 브랜치가 아니라. 브랜치로 두면 uvx 캐시 경로가 매 빌드마다 바뀌고, macOS는 키체인 접근을 **바이너리 단위로** 승인하므로 새 경로마다 승인 창이 다시 뜬다.
-- `#subdirectory=server`로 저장소 하위의 서버만 설치한다 (uv가 지원함, 검증됨).
-- PyPI 배포가 없어도 동작한다. PyPI에 올라가면 `uvx kiwoom-mcp`로 단순화 가능 (콜드 스타트 빨라짐) — 단, 패키지가 실제로 게시된 뒤에만 바꿀 것.
+- **정확한 버전에 고정한다** (`==0.1.1`), 범위나 bare가 아니라. 진짜 제약은 "git 태그여야 한다"가 아니라 **uvx 캐시 경로가 안정적이어야 한다**는 것이다 — bare `kiwoom-mcp`는 새 릴리스가 나올 때마다 경로가 바뀌고, macOS는 키체인 접근을 바이너리 단위로 승인하므로 그때마다 승인 창이 다시 뜬다.
+- **`.mcp.json`이 고정하는 버전은 반드시 PyPI에 게시된 버전이어야 한다.** 서버를 올렸으면: 버전 범프 → 빌드 → PyPI 게시 → 두 `.mcp.json`의 `==X.Y.Z`를 갱신. 게시 전에 pin을 올리면 플러그인이 연결에 실패한다.
+- 게시 전 검증이나 저장소 직접 실행은 git 형태를 쓴다:
+  `uvx --from "git+https://github.com/gejyn14/kiwoom-plugin@vX.Y.Z#subdirectory=server" kiwoom-mcp` (`#subdirectory=server`로 하위 디렉터리만 설치, uv가 지원함).
 
 ## 설계 불변식 — 되돌리지 말 것
 

@@ -4,7 +4,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/gejyn14/kiwoom-plugin@v0.1.0#subdirectory=server",
+        "kiwoom-mcp==0.1.1",
         "kiwoom-mcp",
         "--allow-orders"
       ],
