@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -202,13 +204,42 @@ def run_cli(
 _last_mint_at = 0.0
 
 
+# 키움은 구체적인 오류번호를 메시지 안에만 넣어 보낼 때가 있다:
+#   error.code="UPSTREAM_ERROR", upstream_code=3,
+#   message="인증에 실패했습니다[8005:Token이 유효하지 않습니다]"
+# 만료 토큰이 정확히 이 모양이라, error.code만 보면 자동 갱신이 영원히 안 걸린다.
+_UPSTREAM_CODE_IN_MESSAGE = re.compile(r"\[(\d{1,5}):")
+
+
+def _classify_message_code(message: str | None) -> str | None:
+    """메시지에 박힌 [NNNN:...]을 **kiwoom-cli의 표로** 분류한다.
+
+    매핑을 여기 복제하지 않는다 — 단일 출처는 계속 kiwoom-cli의 envelope.classify다.
+    여기서 하는 일은 kiwoom-cli 자신이 메시지에 넣어 둔 번호를 꺼내 주는 것뿐이다.
+    """
+    match = _UPSTREAM_CODE_IN_MESSAGE.search(message or "")
+    if match is None:
+        return None
+    from kiwoom_cli import envelope as cli_envelope
+
+    try:
+        code, _retryable = cli_envelope.classify(upstream_code=int(match.group(1)))
+    except Exception:
+        return None
+    return code
+
+
 def _should_refresh(exit_code: int, envelope: dict | None) -> bool:
     if exit_code != 3:
         return False
     if envelope is None:
         return True
-    code = (envelope.get("error") or {}).get("code")
-    return code in AUTH_ERROR_CODES
+    error = envelope.get("error") or {}
+    if error.get("code") in AUTH_ERROR_CODES:
+        return True
+    # INVALID_CREDENTIALS(8001)는 여기 걸리지 않는다 — 키가 틀린 것이므로 다시
+    # 발급해도 결과가 같고 호출만 두 배가 된다.
+    return _classify_message_code(error.get("message")) in AUTH_ERROR_CODES
 
 
 def credentials_available() -> bool:
@@ -265,8 +296,22 @@ def mint_token(settings: ServeSettings) -> str | None:
             os.environ.setdefault("KIWOOM_TOKEN_STORAGE", "env")
         try:
             with KiwoomClient(profile=settings.profile) as client:
-                token = client.issue_token()
-        except Exception:
+                # 자격증명을 **명시적으로 넘긴다.** kiwoom-cli가 아는 환경변수는
+                # KIWOOM_ACCOUNT / KIWOOM_DOMAIN / KIWOOM_PROFILE / KIWOOM_TOKEN
+                # 넷뿐이라 KIWOOM_APPKEY/SECRETKEY는 읽지 않는다. 인자를 비우면
+                # 설정·키체인만 뒤지다 "appkey/secretkey not set"으로 죽어,
+                # credentials_available()은 True인데 발급은 **영원히** 실패하는
+                # 상태가 된다 (키체인 없는 컨테이너에서 자동 발급이 통째로 무의미).
+                # env가 비어 있으면 None이 가서 kiwoom-cli의 기존 해석에 맡긴다.
+                token = client.issue_token(
+                    appkey=_env_credential("KIWOOM_APPKEY"),
+                    secretkey=_env_credential("KIWOOM_SECRETKEY"),
+                )
+        except Exception as exc:
+            # 삼키지 않는다. 이 침묵 때문에 "자동 발급이 한 번도 동작한 적 없다"는
+            # 사실이 만료 토큰의 8005 뒤에 가려져 있었다. stdio 전송을 깨지 않도록
+            # stdout이 아니라 stderr로 낸다.
+            print(f"kiwoom-mcp: 토큰 발급 실패: {exc}", file=sys.stderr)
             return None
         if token:
             os.environ["KIWOOM_TOKEN"] = token
