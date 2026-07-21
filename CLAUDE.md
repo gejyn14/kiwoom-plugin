@@ -1,0 +1,91 @@
+# kiwoom-plugin
+
+키움증권 REST API를 Claude Code에 연결하는 것 전부를 담은 저장소. 플러그인 두 개 + MCP 서버 본체.
+
+## 구조
+
+```
+kiwoom-plugin/
+├── .claude-plugin/marketplace.json   마켓플레이스 (플러그인 2개 등록)
+├── plugins/
+│   ├── kiwoom/                        조회 전용 플러그인
+│   │   ├── .claude-plugin/plugin.json
+│   │   ├── .mcp.json                  서버를 uvx로 실행 (주문 없음)
+│   │   └── skills/                    stock-research, portfolio-review, market-scan, kiwoom-setup
+│   └── kiwoom-trader/                 조회 + 주문 플러그인
+│       ├── .mcp.json                  서버를 --allow-orders로 실행
+│       └── skills/                    위 4개 + place-order
+└── server/                           MCP 서버 본체 (파이썬 패키지 kiwoom-mcp)
+    ├── kiwoom_mcp/{cli,server,runner,policy}.py
+    ├── tests/                         96개
+    ├── pyproject.toml
+    ├── Dockerfile / compose.yaml      헤드리스 컨테이너 (토큰 주입)
+    └── README.md
+```
+
+## 세 저장소의 관계
+
+- [kiwoom-cli](https://github.com/gejyn14/kiwoom-cli) — 키움 API 236종 CLI. **안전장치(주문 확인 게이트, dry-run, 멱등키, envelope)가 전부 여기 있다.** 서버는 이것을 감쌀 뿐 다시 구현하지 않는다.
+- **kiwoom-plugin** (이 저장소) — 플러그인 + 스킬 + 서버.
+- ~~kiwoom-mcp~~ — 서버를 담던 별도 저장소. 이 저장소로 흡수하고 삭제 중(로컬 삭제됨, GitHub는 수동 삭제 대기).
+
+## 개발
+
+```bash
+cd server
+pip install -e ".[dev]"
+pytest tests/ -q          # 96개
+ruff check kiwoom_mcp/ tests/
+```
+
+서버는 kiwoom-cli를 의존성으로 쓴다 (PyPI의 kiwoom-cli). 도구 표면이 kiwoom-cli의 명령 트리에서 나오므로, kiwoom-cli가 바뀌면 여기 테스트가 먼저 깨진다.
+
+## 플러그인 배선 (중요)
+
+두 플러그인의 `.mcp.json`은 서버를 이렇게 실행한다:
+
+```
+uvx --from "git+https://github.com/gejyn14/kiwoom-plugin@v0.1.0#subdirectory=server" kiwoom-mcp [--allow-orders]
+```
+
+- **git **태그**에 고정한다** (`@v0.1.0`), 브랜치가 아니라. 브랜치로 두면 uvx 캐시 경로가 매 빌드마다 바뀌고, macOS는 키체인 접근을 **바이너리 단위로** 승인하므로 새 경로마다 승인 창이 다시 뜬다.
+- `#subdirectory=server`로 저장소 하위의 서버만 설치한다 (uv가 지원함, 검증됨).
+- PyPI 배포가 없어도 동작한다. PyPI에 올라가면 `uvx kiwoom-mcp`로 단순화 가능 (콜드 스타트 빨라짐) — 단, 패키지가 실제로 게시된 뒤에만 바꿀 것.
+
+## 설계 불변식 — 되돌리지 말 것
+
+- **서버는 kiwoom-cli를 `CliRunner.invoke(cli, argv)`로 같은 프로세스에서 실행한다.** 파사드를 만들지 않는다 — 확인 게이트·멱등성 원장·페이지네이션·exit code·envelope이 전부 활성 Click 컨텍스트에 매달려 있고, 별도 해석 경로를 만들면 kiwoom-cli에서 세 번 재발한 프로필 해석 버그를 되풀이한다. (`server/kiwoom_mcp/runner.py`)
+- **argv 분류는 Click 파서로 한다, 문자열 훑기가 아니라.** (`policy.py`) 손으로 토큰을 훑으면 `--opt=value`나 끼어든 인자에서 분류와 실제 실행이 갈려, "조회"로 분류된 argv가 주문을 보낸다. Click 8.4가 하위 명령을 `protected_args`로 옮기는 것을 놓쳐 실제로 이 버그가 났다 (`test_policy.py`가 고정).
+- **`kiwoom_order`는 `--allow-orders`일 때만 등록된다.** 설정으로 끄는 게 아니라 도구 목록에 아예 없어야 한다. 안전 여부는 대화 중이 아니라 설치 시점(어느 플러그인을 깔지)에 정한다.
+- **기동 경로는 절대 키체인을 읽지 않는다.** macOS 키체인 승인은 바이너리 단위라, 헤드리스 서버가 기동 중 키체인을 읽으면 답할 수 없는 GUI 창이 떠 무한정 멈춘다 — 타임아웃처럼 보이지만 아니다. 토큰은 첫 호출에서 필요할 때 확보한다. `credentials_available()`은 env만 본다.
+
+## 테스트 규칙 (kiwoom-cli와 동일)
+
+- 값 고정은 **리터럴 하드코딩**. 상수에서 기대값을 가져오면 상수를 바꿔도 통과한다.
+- 서로 다른 분류로 갈리는 케이스를 고른다. 전부 같은 분류면 분류기가 상수를 돌려줘도 통과한다 (`test_policy.py::test_cases_actually_diverge`가 이걸 지킨다).
+- 차단이 전송을 막는지 확인하는 스파이는 **먼저 스파이가 발동하는 것을 증명**한다 (`test_runner.py::test_spy_fires_on_an_allowed_path`). 그 증명이 없으면 배선이 끊겨도 통과한다.
+- 새 테스트는 변경 전 코드에 대고 돌려 실패하는지 확인한다 (worktree 등).
+
+## 릴리스
+
+- 서버 버전은 `server/kiwoom_mcp/__init__.py`가 유일 소스. pyproject는 dynamic 참조.
+- **플러그인의 `.mcp.json`은 git 태그를 고정하지 패키지 버전이 아니다.** 서버를 바꿨으면: 버전 범프 → 새 태그 push → 두 `.mcp.json`의 `@vX.Y.Z`를 새 태그로 갱신.
+- PyPI 게시: `server/`의 kiwoom-mcp 패키지를 Trusted Publishing으로 올린다 (`.github/workflows/publish.yml`, OIDC, 장기 토큰 없음). **최초 1회는 프로젝트가 없어 pending publisher/토큰 문제가 있으므로 수동 `twine upload`로 프로젝트를 만든 뒤** 이후 릴리스를 워크플로에 맡긴다.
+- 플러그인 자체는 PyPI가 아니라 마켓플레이스(git)로 배포된다.
+
+## 검증 (엔드투엔드)
+
+```bash
+# GitHub에서 마켓플레이스 새로 받아 설치
+claude plugin marketplace add gejyn14/kiwoom-plugin
+claude plugin install kiwoom@kiwoom
+claude mcp list | grep plugin:kiwoom      # ✔ Connected 여야 한다
+# 매니페스트 검증
+claude plugin validate .
+```
+
+## 주의
+
+- README·스킬은 한국어 우선.
+- 실거래(`prod`)와 모의(`mock`)를 절대 혼동하지 않는다. 모든 envelope의 `meta.env`로 확인 가능. 스킬은 주문 전 이걸 확인하도록 쓰여 있다.
+- 서버는 조회 전용이 기본. 주문 도구는 `--allow-orders`에서만.
