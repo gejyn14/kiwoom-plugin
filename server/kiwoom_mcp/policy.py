@@ -44,9 +44,15 @@ MUTATION_PREFIXES: tuple[tuple[str, ...], ...] = (
     ("account", "exchange", "apply"),
 )
 
-# order 하위지만 아무것도 전송하지 않는 read-only 사전점검.
+# order 하위지만 아무것도 전송하지 않는 경로.
+#   validate   — read-only 사전점검
+#   condition  — 조건검색 (list/search/realtime/stop). kiwoom-cli가 order 아래
+#                두었을 뿐 조회·구독이며, stop은 실시간 구독 해제이지 주문 취소가
+#                아니다. 여기 없으면 조회 전용 플러그인에서 조건검색이 통째로
+#                막힌다 (ka10171~ka10174).
 MUTATION_EXCEPTIONS: tuple[tuple[str, ...], ...] = (
     ("order", "validate"),
+    ("order", "condition"),
 )
 
 

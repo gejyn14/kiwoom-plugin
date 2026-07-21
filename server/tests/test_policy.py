@@ -19,6 +19,12 @@ CASES = [
     (["order", "validate", "buy", "005930", "1"], "ok"),
     (["order", "credit", "buy", "005930", "1"], "mutation"),
     (["order", "gold", "cancel", "X1", "M04020000"], "mutation"),
+    # order condition: kiwoom-cli가 조건검색을 order 아래 두었을 뿐, 아무것도
+    # 전송하지 않는 조회·구독이다. stop은 실시간 구독 해제이지 주문 취소가 아니다.
+    (["order", "condition", "list"], "ok"),
+    (["order", "condition", "search", "0"], "ok"),
+    (["order", "condition", "realtime", "0"], "ok"),
+    (["order", "condition", "stop", "0"], "ok"),
     # raw api: 같은 명령, api_id로만 갈린다
     (["api", "kt10000", "{}"], "mutation"),
     (["api", "ka10001", "{}"], "ok"),
