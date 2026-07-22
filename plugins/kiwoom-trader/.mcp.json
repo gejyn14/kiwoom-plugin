@@ -4,7 +4,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "kiwoom-mcp==0.1.1",
+        "kiwoom-mcp==0.1.2",
         "kiwoom-mcp",
         "--allow-orders"
       ],

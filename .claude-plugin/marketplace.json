@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "키움증권 REST API 236종을 Claude Code에 연결하는 플러그인 모음",
-    "version": "0.1.1"
+    "version": "0.1.2"
   },
   "plugins": [
     {
       "name": "kiwoom",
       "source": "./plugins/kiwoom",
       "description": "키움증권 시세·계좌·차트·실시간 조회 (조회 전용, 주문 불가)",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": { "name": "Yu Jin" },
       "homepage": "https://github.com/gejyn14/kiwoom-plugin",
       "repository": "https://github.com/gejyn14/kiwoom-plugin",
@@ -25,7 +25,7 @@
       "name": "kiwoom-trader",
       "source": "./plugins/kiwoom-trader",
       "description": "kiwoom 조회 기능 + 주문 실행. 실제 돈이 움직입니다 — 모의투자로 먼저 검증하세요",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": { "name": "Yu Jin" },
       "homepage": "https://github.com/gejyn14/kiwoom-plugin",
       "repository": "https://github.com/gejyn14/kiwoom-plugin",
