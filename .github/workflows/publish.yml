@@ -1,7 +1,8 @@
 name: Publish server to PyPI
 
-# server/ 의 kiwoom-mcp 패키지를 PyPI에 게시합니다. 플러그인 자체는 PyPI가
-# 아니라 Claude Code 마켓플레이스(git)로 배포되므로 여기 대상이 아닙니다.
+# server/ 의 kiwoom-mcp 패키지를 PyPI에 게시하고, 이어서 공식 MCP 레지스트리에
+# 등록합니다. 플러그인 자체는 PyPI가 아니라 Claude Code 마켓플레이스(git)로
+# 배포되므로 여기 대상이 아닙니다.
 #
 # 태그(v*)를 밀거나 Actions에서 수동 실행(workflow_dispatch)하면 동작합니다.
 # 먼저 PyPI에 Trusted Publisher를 등록해야 합니다 (README/설정 안내 참고):
@@ -37,3 +38,54 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: server/dist/
+          # 이미 올라간 버전이면 조용히 넘어갑니다. 이게 없으면 수동 실행
+          # (workflow_dispatch)이 항상 실패해서, 뒤따르는 registry 잡이
+          # 영원히 돌지 못합니다 — 게시된 버전을 레지스트리에만 등록하고 싶을
+          # 때 쓸 수 있어야 합니다.
+          skip-existing: true
+
+  # 공식 MCP 레지스트리 등록. PyPI 게시가 **성공한 뒤에만** 돌아야 합니다 —
+  # 레지스트리는 PyPI에서 패키지 README를 받아 `mcp-name:` 마커가 server.json의
+  # name과 같은지 검사해 소유권을 확인하므로, 패키지가 먼저 올라가 있어야 합니다.
+  #
+  # 인증은 GitHub Actions OIDC라 장기 토큰이 없습니다. 이름이
+  # io.github.<owner>/ 로 시작해야 이 저장소의 OIDC 신원과 맞습니다.
+  registry:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # mcp-publisher login github-oidc
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 게시한 버전이 PyPI에 보일 때까지 기다린다
+        # PyPI 인덱스는 업로드 직후 몇 분간 뒤처집니다. 기다리지 않으면
+        # 레지스트리가 "그런 버전 없음"으로 거부합니다 — 게시는 멀쩡한데
+        # 등록만 실패하는, 원인을 오해하기 쉬운 실패입니다.
+        run: |
+          VERSION=$(jq -r .version server.json)
+          echo "기다리는 버전: $VERSION"
+          for i in $(seq 1 60); do
+            if curl -fsS "https://pypi.org/pypi/kiwoom-mcp/$VERSION/json" >/dev/null 2>&1; then
+              echo "PyPI에 $VERSION 확인 (${i}회차)"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "10분 동안 PyPI에서 $VERSION 을 보지 못했습니다." >&2
+          exit 1
+
+      - name: mcp-publisher 설치
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" \
+            | tar xz mcp-publisher
+          sudo mv mcp-publisher /usr/local/bin/
+          mcp-publisher --version
+
+      # 등록 전에 스키마를 확인합니다. 잘못된 매니페스트로 publish를 때리는
+      # 것보다 여기서 멈추는 편이 낫습니다.
+      - run: mcp-publisher validate
+
+      - run: mcp-publisher login github-oidc
+      - run: mcp-publisher publish
